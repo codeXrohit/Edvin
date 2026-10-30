@@ -1,0 +1,39 @@
+{
+  "name": "edvin",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:api": "node --watch --env-file-if-exists=.env server/index.mjs",
+    "start": "node --env-file-if-exists=.env server/index.mjs",
+    "test": "node --test server/*.test.mjs",
+    "build": "vite build && node --env-file-if-exists=.env scripts/build-pages.mjs",
+    "preview": "vite preview",
+    "check:config": "node --env-file-if-exists=.env scripts/check-config.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/nunito": "5.1.0",
+    "@fontsource/dm-sans": "5.1.0",
+    "@fontsource/jetbrains-mono": "5.1.1",
+    "@fortawesome/fontawesome-free": "^7.3.1",
+    "lenis": "1.1.14",
+    "motion": "^14.7.1",
+    "mp4box": "0.5.2",
+    "nodemailer": "^10.2.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-router-dom": "^7.18.5",
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "4.3.1",
+    "autoprefixer": "10.4.19",
+    "postcss": "8.4.39",
+    "tailwindcss": "3.4.6",
+    "vite": "5.4.21"
+  },
+  "engines": {
+    "node": ">=22.9.0"
+  }
+}

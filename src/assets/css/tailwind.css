@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply [scrollbar-gutter:stable];
+  }
+  body {
+    @apply font-body bg-paper text-navy overflow-x-hidden antialiased;
+  }
+  :focus-visible {
+    @apply outline outline-[3px] outline-sun outline-offset-[3px] rounded-lg;
+  }
+  main:focus {
+    @apply outline-none;
+  }
+}
+
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
