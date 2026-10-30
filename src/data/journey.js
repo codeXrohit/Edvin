@@ -1,1 +1,2 @@
 export const PORT_VIDEO_SCROLL_SCREENS = 2.4;
+export const MOBILE_PORT_VIDEO_SCROLL_SCREENS = 4.8;

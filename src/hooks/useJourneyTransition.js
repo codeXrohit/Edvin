@@ -16,8 +16,8 @@ export function useJourneyTransition(containerRef, progress, viewportRef) {
     const section = containerRef.current;
     if (!section) return;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
-    let previous = progress.get();
     let armed = true;
+    let downIntent = false;
     let running = false;
     let settling = false;
     let lastDownInput = -Infinity;
@@ -37,6 +37,7 @@ export function useJourneyTransition(containerRef, progress, viewportRef) {
       cancelScroll = null;
       running = false;
       lastDownInput = -Infinity;
+      downIntent = false;
       pendingTouchJourney = false;
       release();
     };
@@ -60,41 +61,45 @@ export function useJourneyTransition(containerRef, progress, viewportRef) {
         onComplete: () => {
           running = false;
           cancelScroll = null;
-          settling = performance.now() - lastDownInput < GESTURE_IDLE_MS;
-          if (settling) releaseAfterGesture();
+          settling = touching || performance.now() - lastDownInput < GESTURE_IDLE_MS;
+          if (settling && !touching) releaseAfterGesture();
         },
       });
     };
     startRef.current = start;
 
-    const unsubscribe = progress.on('change', (value) => {
-      const crossedClouds = previous < CLOUD_START && value >= CLOUD_START;
-      previous = value;
-      if (!running && value < 0.025) armed = true;
+    const maybeStart = (value = progress.get()) => {
       if (
         armed &&
-        crossedClouds &&
+        !running &&
+        downIntent &&
+        value >= CLOUD_START &&
         value < JOURNEY_STOP &&
-        performance.now() - lastDownInput < 900 &&
         !reduced.matches
       ) {
         if (touching) pendingTouchJourney = true;
         else start();
       }
+    };
+    const unsubscribe = progress.on('change', (value) => {
+      if (!running && value < 0.025) armed = true;
+      maybeStart(value);
     });
     const forwardInput = (event, delta) => {
       if (event.target.closest?.(INTERACTIVE) || event.ctrlKey) return;
       if (delta < 0) {
         lastDownInput = -Infinity;
+        downIntent = false;
         pendingTouchJourney = false;
         if (running || settling) cancel();
         return;
       }
       if (delta === 0) return;
-      if (settling && performance.now() - lastDownInput >= GESTURE_IDLE_MS) release();
+      if (settling && !touching && performance.now() - lastDownInput >= GESTURE_IDLE_MS) release();
       lastDownInput = performance.now();
+      downIntent = true;
+      maybeStart();
       if (!running && !settling) return;
-      if (event.type === 'touchmove') return;
       if (event.cancelable) event.preventDefault();
       event.stopPropagation();
       if (settling) releaseAfterGesture();
@@ -114,19 +119,19 @@ export function useJourneyTransition(containerRef, progress, viewportRef) {
       touching = true;
       pendingTouchJourney = false;
       touchY = event.touches[0]?.clientY ?? 0;
-      if (running || settling) cancel();
+      if (!running) {
+        downIntent = false;
+        release();
+      }
     };
     const touchend = () => {
       touching = false;
-      const value = progress.get();
-      const shouldStart =
-        pendingTouchJourney && armed && value >= CLOUD_START && value < JOURNEY_STOP && !reduced.matches;
+      if (pendingTouchJourney || downIntent) maybeStart();
       pendingTouchJourney = false;
-      if (shouldStart) start();
+      if (settling) releaseAfterGesture();
     };
     const touchcancel = () => {
-      touching = false;
-      pendingTouchJourney = false;
+      touchend();
     };
     const resize = () => {
       if (window.innerWidth === viewportWidth) return;
@@ -136,7 +141,9 @@ export function useJourneyTransition(containerRef, progress, viewportRef) {
     const touchmove = (event) => {
       if (event.touches.length !== 1) return;
       const nextY = event.touches[0].clientY;
-      forwardInput(event, touchY - nextY);
+      const delta = touchY - nextY;
+      if (Math.abs(delta) < 4) return;
+      forwardInput(event, delta);
       touchY = nextY;
     };
     const pointerdown = (event) => {
@@ -152,7 +159,7 @@ export function useJourneyTransition(containerRef, progress, viewportRef) {
     window.addEventListener('wheel', wheel, { capture: true, passive: false });
     window.addEventListener('keydown', keydown, true);
     window.addEventListener('touchstart', touchstart, { passive: true });
-    window.addEventListener('touchmove', touchmove, { capture: true, passive: true });
+    window.addEventListener('touchmove', touchmove, { capture: true, passive: false });
     window.addEventListener('touchend', touchend, { passive: true });
     window.addEventListener('touchcancel', touchcancel, { passive: true });
     window.addEventListener('pointerdown', pointerdown, true);

@@ -69,7 +69,7 @@ export default function ArrivalHero() {
     <section
       id="journey"
       ref={containerRef}
-      className="relative h-[560vh] phone-down:h-[560svh]"
+      className="relative h-[560vh] phone-down:h-[340svh]"
       aria-label="Edvin intro: from the clouds to the cargo ship"
     >
       <div className="sticky top-0 h-[100svh] w-full overflow-hidden bg-[#fdfaf6] phone-down:h-[100dvh]">

@@ -5,7 +5,7 @@ import { motion } from 'motion/react';
 import { useVideoScrub } from '@/hooks/useVideoScrub';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { scrollToId } from '@/utils/smoothScroll';
-import { PORT_VIDEO_SCROLL_SCREENS } from '@/data/journey';
+import { MOBILE_PORT_VIDEO_SCROLL_SCREENS } from '@/data/journey';
 
 export default function MobilePort({ source, poster, cards }) {
   const track = useRef(null);
@@ -25,7 +25,7 @@ export default function MobilePort({ source, poster, cards }) {
       <div
         ref={track}
         className="relative"
-        style={flat ? undefined : { height: `${(1 + PORT_VIDEO_SCROLL_SCREENS) * 100}svh` }}
+        style={flat ? undefined : { height: `${(1 + MOBILE_PORT_VIDEO_SCROLL_SCREENS) * 100}svh` }}
       >
         <div
           ref={viewportRef}
