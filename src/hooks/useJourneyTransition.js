@@ -22,6 +22,9 @@ export function useJourneyTransition(containerRef, progress, viewportRef) {
     let settling = false;
     let lastDownInput = -Infinity;
     let touchY = 0;
+    let touching = false;
+    let pendingTouchJourney = false;
+    let viewportWidth = window.innerWidth;
     let releaseTimer = 0;
     let cancelScroll = null;
 
@@ -34,6 +37,7 @@ export function useJourneyTransition(containerRef, progress, viewportRef) {
       cancelScroll = null;
       running = false;
       lastDownInput = -Infinity;
+      pendingTouchJourney = false;
       release();
     };
     const releaseAfterGesture = () => {
@@ -73,13 +77,16 @@ export function useJourneyTransition(containerRef, progress, viewportRef) {
         value < JOURNEY_STOP &&
         performance.now() - lastDownInput < 900 &&
         !reduced.matches
-      )
-        start();
+      ) {
+        if (touching) pendingTouchJourney = true;
+        else start();
+      }
     });
     const forwardInput = (event, delta) => {
       if (event.target.closest?.(INTERACTIVE) || event.ctrlKey) return;
       if (delta < 0) {
         lastDownInput = -Infinity;
+        pendingTouchJourney = false;
         if (running || settling) cancel();
         return;
       }
@@ -87,7 +94,8 @@ export function useJourneyTransition(containerRef, progress, viewportRef) {
       if (settling && performance.now() - lastDownInput >= GESTURE_IDLE_MS) release();
       lastDownInput = performance.now();
       if (!running && !settling) return;
-      event.preventDefault();
+      if (event.type === 'touchmove') return;
+      if (event.cancelable) event.preventDefault();
       event.stopPropagation();
       if (settling) releaseAfterGesture();
     };
@@ -103,8 +111,27 @@ export function useJourneyTransition(containerRef, progress, viewportRef) {
       else if (event.key === 'End') cancel();
     };
     const touchstart = (event) => {
+      touching = true;
+      pendingTouchJourney = false;
       touchY = event.touches[0]?.clientY ?? 0;
       if (running || settling) cancel();
+    };
+    const touchend = () => {
+      touching = false;
+      const value = progress.get();
+      const shouldStart =
+        pendingTouchJourney && armed && value >= CLOUD_START && value < JOURNEY_STOP && !reduced.matches;
+      pendingTouchJourney = false;
+      if (shouldStart) start();
+    };
+    const touchcancel = () => {
+      touching = false;
+      pendingTouchJourney = false;
+    };
+    const resize = () => {
+      if (window.innerWidth === viewportWidth) return;
+      viewportWidth = window.innerWidth;
+      cancel();
     };
     const touchmove = (event) => {
       if (event.touches.length !== 1) return;
@@ -125,10 +152,12 @@ export function useJourneyTransition(containerRef, progress, viewportRef) {
     window.addEventListener('wheel', wheel, { capture: true, passive: false });
     window.addEventListener('keydown', keydown, true);
     window.addEventListener('touchstart', touchstart, { passive: true });
-    window.addEventListener('touchmove', touchmove, { capture: true, passive: false });
+    window.addEventListener('touchmove', touchmove, { capture: true, passive: true });
+    window.addEventListener('touchend', touchend, { passive: true });
+    window.addEventListener('touchcancel', touchcancel, { passive: true });
     window.addEventListener('pointerdown', pointerdown, true);
     window.addEventListener('click', pointerdown, true);
-    window.addEventListener('resize', cancel);
+    window.addEventListener('resize', resize);
     window.addEventListener('popstate', cancel);
     document.addEventListener('visibilitychange', visibility);
     reduced.addEventListener('change', preferences);
@@ -140,9 +169,11 @@ export function useJourneyTransition(containerRef, progress, viewportRef) {
       window.removeEventListener('keydown', keydown, true);
       window.removeEventListener('touchstart', touchstart);
       window.removeEventListener('touchmove', touchmove, true);
+      window.removeEventListener('touchend', touchend);
+      window.removeEventListener('touchcancel', touchcancel);
       window.removeEventListener('pointerdown', pointerdown, true);
       window.removeEventListener('click', pointerdown, true);
-      window.removeEventListener('resize', cancel);
+      window.removeEventListener('resize', resize);
       window.removeEventListener('popstate', cancel);
       document.removeEventListener('visibilitychange', visibility);
       reduced.removeEventListener('change', preferences);

@@ -5,6 +5,7 @@ import { motion } from 'motion/react';
 import { useVideoScrub } from '@/hooks/useVideoScrub';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { scrollToId } from '@/utils/smoothScroll';
+import { PORT_VIDEO_SCROLL_SCREENS } from '@/data/journey';
 
 export default function MobilePort({ source, poster, cards }) {
   const track = useRef(null);
@@ -21,7 +22,11 @@ export default function MobilePort({ source, poster, cards }) {
       aria-label="At the port, and the toys we bring"
       className="scroll-mt-0 bg-[#f6f2eb] text-navy"
     >
-      <div ref={track} className={flat ? 'relative' : 'relative h-[210svh]'}>
+      <div
+        ref={track}
+        className="relative"
+        style={flat ? undefined : { height: `${(1 + PORT_VIDEO_SCROLL_SCREENS) * 100}svh` }}
+      >
         <div
           ref={viewportRef}
           className={`${flat ? 'relative' : 'sticky top-0'} isolate flex min-h-[100svh] flex-col overflow-hidden bg-white`}

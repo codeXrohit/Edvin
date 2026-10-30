@@ -1,4 +1,5 @@
 import { useId, useState } from 'react';
+import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'motion/react';
 import { Minus, Plus } from '@/components/common/Icons';
 const FAQS = [
   {
@@ -26,6 +27,27 @@ const FAQS = [
     a: 'You get one direct contact at Edvin for everything — reorders, restocking schedules and any issue with a shipment.',
   },
 ];
+function FAQAnswer({ children, labelledBy }) {
+  const present = useIsPresent();
+  const reduce = useReducedMotion();
+  return (
+    <motion.div
+      role="region"
+      aria-labelledby={labelledBy}
+      aria-hidden={!present}
+      inert={present ? undefined : ''}
+      initial={{ height: 0, opacity: 0 }}
+      animate={{ height: 'auto', opacity: 1 }}
+      exit={{ height: 0, opacity: 0 }}
+      transition={{ duration: reduce ? 0 : 0.28, ease: [0.22, 1, 0.36, 1] }}
+      className="overflow-hidden"
+    >
+      <p className="border-t border-white/10 px-[22px] py-[24px] text-base leading-relaxed text-white/60 md:px-[28px]">
+        {children}
+      </p>
+    </motion.div>
+  );
+}
 export default function FAQAccordion() {
   const [open, setOpen] = useState(0);
   const prefix = useId();
@@ -34,7 +56,7 @@ export default function FAQAccordion() {
       {FAQS.map((item, i) => {
         const isOpen = open === i;
         return (
-          <article key={item.q} className="overflow-hidden rounded-[18px] bg-black transition duration-300">
+          <article key={item.q} className="overflow-hidden rounded-[18px] bg-black">
             <button
               type="button"
               onClick={() => setOpen(isOpen ? -1 : i)}
@@ -51,17 +73,14 @@ export default function FAQAccordion() {
                 {isOpen ? <Minus size={16} aria-hidden="true" /> : <Plus size={16} aria-hidden="true" />}
               </span>
             </button>
-            <div
-              id={`${prefix}-answer-${i}`}
-              role="region"
-              aria-labelledby={`${prefix}-question-${i}`}
-              hidden={!isOpen}
-            >
-              <div className="overflow-hidden">
-                <p className="border-t border-white/10 px-[22px] py-[24px] text-base leading-relaxed text-white/60 md:px-[28px]">
-                  {item.a}
-                </p>
-              </div>
+            <div id={`${prefix}-answer-${i}`}>
+              <AnimatePresence initial={false}>
+                {isOpen && (
+                  <FAQAnswer key={item.q} labelledBy={`${prefix}-question-${i}`}>
+                    {item.a}
+                  </FAQAnswer>
+                )}
+              </AnimatePresence>
             </div>
           </article>
         );

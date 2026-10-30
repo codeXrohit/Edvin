@@ -38,6 +38,8 @@ export function useVideoScrub(source, containerRef, options) {
     let worker = null;
     let workerFailed = false;
     let watchdog = 0;
+    let primed = false;
+    let priming = false;
     const measure = () => {
       drawn = -1;
       start = section.getBoundingClientRect().top + scrollY;
@@ -131,7 +133,9 @@ export function useVideoScrub(source, containerRef, options) {
       } else showCanvas(false);
       if (
         !painted &&
-        (reduced.matches || !supportsWorker || (workerFailed && !complete)) &&
+        !priming &&
+        (mobile || reduced.matches || !supportsWorker || (workerFailed && !complete)) &&
+        video.readyState >= 1 &&
         duration > 0 &&
         !video.seeking &&
         Math.abs(video.currentTime - current) > 0.02
@@ -154,9 +158,12 @@ export function useVideoScrub(source, containerRef, options) {
       worker?.postMessage({ type: 'visibility', paused });
       clearTimeout(watchdog);
       if (worker && !paused && !frames.length)
-        watchdog = window.setTimeout(() => {
-          if (!frames.length) stopWorker();
-        }, 60000);
+        watchdog = window.setTimeout(
+          () => {
+            if (!frames.length) stopWorker();
+          },
+          mobile ? 8000 : 60000,
+        );
     };
     const startWorker = () => {
       if (
@@ -232,6 +239,24 @@ export function useVideoScrub(source, containerRef, options) {
       setMediaFailed(false);
       metadata();
     };
+    const primeNative = () => {
+      if (!nearby || painted || primed || priming) return;
+      if (!mobile && supportsWorker && !workerFailed && !reduced.matches) return;
+      video.preload = 'auto';
+      if (video.networkState === 0) video.load();
+      priming = true;
+      Promise.resolve(video.play())
+        .then(() => {
+          if (disposed) return;
+          video.pause();
+          primed = true;
+        })
+        .catch(() => {})
+        .finally(() => {
+          priming = false;
+          schedule();
+        });
+    };
     const online = () => {
       if (video.error) video.load();
       if (workerFailed && !complete) {
@@ -266,6 +291,7 @@ export function useVideoScrub(source, containerRef, options) {
         nearby = entry.isIntersecting;
         if (nearby) {
           if (reduced.matches || !supportsWorker || (workerFailed && !complete)) video.preload = 'auto';
+          else if (mobile) video.preload = 'metadata';
           startWorker();
           lastTime = performance.now();
           schedule();
@@ -291,10 +317,13 @@ export function useVideoScrub(source, containerRef, options) {
     window.addEventListener('scroll', schedule, { passive: true });
     window.addEventListener('resize', measure);
     window.addEventListener('online', online);
+    window.addEventListener('touchstart', primeNative, { passive: true });
+    window.addEventListener('pointerdown', primeNative, { passive: true });
     document.addEventListener('visibilitychange', visibility);
     reduced.addEventListener('change', preferences);
     return () => {
       disposed = true;
+      video.pause();
       cancelAnimationFrame(raf);
       clearTimeout(watchdog);
       worker?.terminate();
@@ -308,6 +337,8 @@ export function useVideoScrub(source, containerRef, options) {
       window.removeEventListener('scroll', schedule);
       window.removeEventListener('resize', measure);
       window.removeEventListener('online', online);
+      window.removeEventListener('touchstart', primeNative);
+      window.removeEventListener('pointerdown', primeNative);
       document.removeEventListener('visibilitychange', visibility);
       reduced.removeEventListener('change', preferences);
     };

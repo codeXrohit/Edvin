@@ -1,4 +1,5 @@
 import { PRODUCTS } from '@/data/products';
+import { PORT_VIDEO_SCROLL_SCREENS } from '@/data/journey';
 import portPoster from '@/assets/images/port-poster.jpg';
 import { useLayoutEffect, useRef } from 'react';
 import { scrollToId } from '@/utils/smoothScroll';
@@ -13,7 +14,7 @@ const CLIP_1080 =
 const CLIP_720 =
   'https://d2ol7oe51mr4n9.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/b3718419-7a0a-478d-bfb0-0ff8bef7f3f7.mp4';
 const POSTER = portPoster;
-const A = 2.4; // viewports of scroll for the clip
+const A = PORT_VIDEO_SCROLL_SCREENS;
 const FINAL_EDGE = 0.448; // band edge in the last frame, share of clip height
 export const PORT_CARDS = [
   {
